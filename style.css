@@ -1,0 +1,93 @@
+:root {
+  --bg-ledger: #FAFAF8;
+  --text-ink: #1B2430;
+  --color-forest: #2F6B4F;
+  --color-rust: #B3442A;
+  --border-hairline: #E5E5E0;
+  
+  --font-serif: 'IBM Plex Serif', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', Menlo, Consolas, Monaco, monospace;
+}
+
+body {
+  background-color: var(--bg-ledger);
+  color: var(--text-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--color-forest);
+  color: #FFFFFF;
+}
+
+.border-hairline {
+  border-color: var(--border-hairline);
+}
+
+.divide-hairline > * + * {
+  border-color: var(--border-hairline);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-forest) !important;
+  outline-offset: 2px !important;
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-forest) !important;
+  outline-offset: 0 !important;
+  border-color: var(--color-forest) !important;
+}
+
+@media (pointer: coarse) {
+  button,
+  input[type="text"],
+  input[type="number"],
+  select {
+    min-height: 38px;
+  }
+}
+
+@media (min-width: 900px) {
+  .ledger-sheet {
+    max-width: 1140px;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    grid-template-areas:
+      "add-expense members"
+      "expenses balances";
+    align-items: start;
+    padding-top: 36px;
+  }
+
+  #app > section {
+    border: 1px solid var(--border-hairline);
+    border-radius: 2px;
+    padding: 26px 24px;
+    height: fit-content;
+  }
+
+  #section-add-expense {
+    grid-area: add-expense;
+  }
+
+  #section-members {
+    grid-area: members;
+  }
+
+  #section-expenses {
+    grid-area: expenses;
+  }
+
+  #section-balances {
+    grid-area: balances;
+  }
+}

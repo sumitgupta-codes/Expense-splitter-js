@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Splitter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ledger: {
+              bg: '#FAFAF8',
+              ink: '#1B2430',
+              forest: '#2F6B4F',
+              rust: '#B3442A',
+              border: '#E5E5E0',
+              muted: '#687282'
+            }
+          },
+          fontFamily: {
+            serif: ['"IBM Plex Serif"', 'Georgia', 'serif'],
+            sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'Menlo', 'Consolas', 'monospace']
+          },
+          borderRadius: {
+            DEFAULT: '2px',
+            'sm': '2px',
+            'md': '4px'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-ledger-bg text-ledger-ink font-sans min-h-screen">
+  <div class="ledger-sheet max-w-[820px] min-[900px]:max-w-[1140px] mx-auto px-4 sm:px-8 py-8 sm:py-12 transition-all">
+
+    <!-- Header -->
+    <header class="pb-6 sm:pb-8 border-b border-ledger-border flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 sm:gap-4">
+      <div>
+        <h1 class="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-ledger-ink">Expense Splitter</h1>
+        <p class="font-sans text-sm text-ledger-muted mt-1.5">Shared expense ledger &amp; settlement sheet</p>
+      </div>
+      <div class="relative flex items-center shrink-0">
+        <div id="clear-all-default">
+          <button
+            type="button"
+            id="clear-all-btn"
+            class="font-sans text-xs tracking-wider uppercase text-ledger-muted hover:text-ledger-ink hover:underline underline-offset-4 transition-colors min-h-[36px] px-2 flex items-center cursor-pointer"
+          >
+            Clear All
+          </button>
+        </div>
+        <div id="clear-all-confirm" class="hidden items-center gap-2 font-sans text-xs">
+          <span class="text-ledger-rust font-medium">Reset all data?</span>
+          <button
+            type="button"
+            id="confirm-clear-btn"
+            class="bg-ledger-rust text-white px-2.5 py-1 text-xs font-medium rounded-sm hover:bg-[#963720] transition-colors cursor-pointer min-h-[36px] flex items-center"
+          >
+            Yes, Reset
+          </button>
+          <button
+            type="button"
+            id="cancel-clear-btn"
+            class="text-ledger-muted hover:text-ledger-ink underline underline-offset-2 transition-colors cursor-pointer min-h-[36px] px-2 flex items-center"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container with Ledger hairline sections -->
+    <main id="app" class="divide-y min-[900px]:divide-y-0 divide-ledger-border">
+
+      <!-- Section: Group Members -->
+      <section id="section-members" class="py-9">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-serif text-xl font-medium tracking-tight text-ledger-ink">Group Members</h2>
+          <span id="members-count" class="font-mono text-xs text-ledger-muted">3 members</span>
+        </div>
+        <div id="members-content">
+          <form id="add-member-form" class="flex gap-2 items-center mb-2">
+            <input
+              type="text"
+              id="member-name-input"
+              placeholder="Add person name..."
+              class="flex-1 bg-white border border-ledger-border px-3.5 py-2 text-sm text-ledger-ink placeholder:text-ledger-muted/60 rounded-sm focus:outline-none focus:border-ledger-forest transition-colors font-sans"
+              autocomplete="off"
+            >
+            <button
+              type="submit"
+              id="add-member-btn"
+              class="bg-ledger-forest text-white px-4 py-2 text-sm font-medium rounded-sm hover:bg-[#25563f] transition-colors focus:outline-none flex items-center gap-1.5 font-sans shrink-0 cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              <span>Add</span>
+            </button>
+          </form>
+          <p id="member-error-msg" class="text-xs text-ledger-rust mb-3 hidden font-sans"></p>
+
+          <div id="members-list-wrapper">
+            <!-- POPULATED STATE: visible by default -->
+            <ul id="members-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border">
+              <!-- Member 1: ram -->
+              <li class="flex items-center justify-between py-2.5 px-1 hover:bg-slate-100/50 transition-colors gap-2">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white shrink-0 select-none" style="background-color: #2F6B4F;">
+                    R
+                  </span>
+                  <span class="font-sans text-sm font-medium text-ledger-ink truncate break-words">ram</span>
+                </div>
+                <button type="button" class="remove-member-btn text-ledger-muted hover:text-ledger-rust p-2 rounded-sm transition-colors cursor-pointer shrink-0 ml-2 min-w-[36px] min-h-[36px] flex items-center justify-center" data-id="m_1" title="Remove ram" aria-label="Remove ram">
+                  <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </li>
+            </ul>
+            <div id="members-empty" class="text-sm text-ledger-muted py-3 italic hidden">
+              No members added yet.
+            </div>
+
+            <!-- EMPTY STATE: uncomment this block and comment the populated block above to show the empty UI
+            <ul id="members-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border hidden">
+            </ul>
+            <div id="members-empty" class="text-sm text-ledger-muted py-3 italic">
+              No members added yet.
+            </div>
+            -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Add Expense -->
+      <section id="section-add-expense" class="py-9">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-serif text-xl font-medium tracking-tight text-ledger-ink">Add Expense</h2>
+        </div>
+        <div id="add-expense-content">
+          <!-- Warning when members < 2 -->
+          <div id="expense-members-warning" class="text-sm text-ledger-muted py-3 italic hidden">
+            Add at least 2 group members to record expenses.
+          </div>
+
+          <!-- Add Expense Form -->
+          <form id="add-expense-form" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Expense Title -->
+              <div>
+                <label for="expense-title-input" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                  Expense Title
+                </label>
+                <input
+                  type="text"
+                  id="expense-title-input"
+                  placeholder="e.g. Dinner, Groceries, Taxi"
+                  class="w-full bg-white border border-ledger-border px-3.5 py-2 text-sm text-ledger-ink placeholder:text-ledger-muted/60 rounded-sm focus:outline-none focus:border-ledger-forest transition-colors font-sans"
+                  autocomplete="off"
+                >
+              </div>
+
+              <!-- Amount in INR -->
+              <div>
+                <label for="expense-amount-input" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                  Amount (₹)
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-sm text-ledger-muted select-none">₹</span>
+                  <input
+                    type="number"
+                    id="expense-amount-input"
+                    min="0.01"
+                    step="any"
+                    placeholder="0.00"
+                    class="w-full bg-white border border-ledger-border pl-8 pr-3.5 py-2 text-sm text-ledger-ink font-mono rounded-sm focus:outline-none focus:border-ledger-forest transition-colors"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Paid By dropdown -->
+            <div>
+              <label for="expense-payer-select" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                Paid By
+              </label>
+              <select
+                id="expense-payer-select"
+                class="w-full bg-white border border-ledger-border px-3.5 py-2 text-sm text-ledger-ink rounded-sm focus:outline-none focus:border-ledger-forest transition-colors font-sans cursor-pointer"
+              >
+                <option value="ram">ram</option>
+                <option value="shyam">shyam</option>
+                <option value="sita">sita</option>
+              </select>
+            </div>
+
+            <!-- Split Between Checkboxes -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider">
+                  Split Between
+                </label>
+                <div class="space-x-3 text-xs font-sans">
+                  <button type="button" id="split-select-all-btn" class="text-ledger-forest hover:underline cursor-pointer">Select All</button>
+                  <span class="text-ledger-border">|</span>
+                  <button type="button" id="split-clear-all-btn" class="text-ledger-muted hover:text-ledger-ink hover:underline cursor-pointer">Clear</button>
+                </div>
+              </div>
+              <div id="split-members-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-white border border-ledger-border rounded-sm">
+                <label class="flex items-center gap-2.5 text-xs font-sans text-ledger-ink cursor-pointer hover:bg-slate-100/60 px-2 py-2 rounded-sm select-none border border-transparent hover:border-ledger-border transition-colors min-h-[36px]">
+                  <input type="checkbox" value="ram" class="split-member-checkbox rounded-sm text-ledger-forest accent-[#2F6B4F] cursor-pointer w-4 h-4 shrink-0" checked>
+                  <span class="truncate break-all min-w-0">ram</span>
+                </label>
+                <label class="flex items-center gap-2.5 text-xs font-sans text-ledger-ink cursor-pointer hover:bg-slate-100/60 px-2 py-2 rounded-sm select-none border border-transparent hover:border-ledger-border transition-colors min-h-[36px]">
+                  <input type="checkbox" value="shyam" class="split-member-checkbox rounded-sm text-ledger-forest accent-[#2F6B4F] cursor-pointer w-4 h-4 shrink-0" checked>
+                  <span class="truncate break-all min-w-0">shyam</span>
+                </label>
+                <label class="flex items-center gap-2.5 text-xs font-sans text-ledger-ink cursor-pointer hover:bg-slate-100/60 px-2 py-2 rounded-sm select-none border border-transparent hover:border-ledger-border transition-colors min-h-[36px]">
+                  <input type="checkbox" value="sita" class="split-member-checkbox rounded-sm text-ledger-forest accent-[#2F6B4F] cursor-pointer w-4 h-4 shrink-0" checked>
+                  <span class="truncate break-all min-w-0">sita</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Submit Button & Inline Status -->
+            <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <button
+                type="submit"
+                id="add-expense-btn"
+                class="bg-ledger-forest text-white px-5 py-2.5 text-sm font-medium rounded-sm hover:bg-[#25563f] disabled:opacity-40 disabled:cursor-not-allowed transition-all font-sans cursor-pointer min-h-[38px] flex items-center justify-center shrink-0"
+              >
+                Add Expense
+              </button>
+              <span id="expense-validation-hint" class="font-sans text-xs text-ledger-muted">
+                Splitting between 3 people
+              </span>
+            </div>
+          </form>
+
+          <!-- EMPTY STATE: uncomment this block and comment the populated block above to show the empty UI
+          <div id="expense-members-warning" class="text-sm text-ledger-muted py-3 italic">
+            Add at least 2 group members to record expenses.
+          </div>
+          <form id="add-expense-form" class="space-y-4 hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="expense-title-input" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                  Expense Title
+                </label>
+                <input
+                  type="text"
+                  id="expense-title-input"
+                  placeholder="e.g. Dinner, Groceries, Taxi"
+                  class="w-full bg-white border border-ledger-border px-3.5 py-2 text-sm text-ledger-ink placeholder:text-ledger-muted/60 rounded-sm focus:outline-none focus:border-ledger-forest transition-colors font-sans"
+                  autocomplete="off"
+                >
+              </div>
+              <div>
+                <label for="expense-amount-input" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                  Amount (₹)
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-sm text-ledger-muted select-none">₹</span>
+                  <input
+                    type="number"
+                    id="expense-amount-input"
+                    min="0.01"
+                    step="any"
+                    placeholder="0.00"
+                    class="w-full bg-white border border-ledger-border pl-8 pr-3.5 py-2 text-sm text-ledger-ink font-mono rounded-sm focus:outline-none focus:border-ledger-forest transition-colors"
+                  >
+                </div>
+              </div>
+            </div>
+            <div>
+              <label for="expense-payer-select" class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider mb-1.5">
+                Paid By
+              </label>
+              <select
+                id="expense-payer-select"
+                class="w-full bg-white border border-ledger-border px-3.5 py-2 text-sm text-ledger-ink rounded-sm focus:outline-none focus:border-ledger-forest transition-colors font-sans cursor-pointer"
+              >
+              </select>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block font-sans text-xs font-medium text-ledger-muted uppercase tracking-wider">
+                  Split Between
+                </label>
+                <div class="space-x-3 text-xs font-sans">
+                  <button type="button" id="split-select-all-btn" class="text-ledger-forest hover:underline cursor-pointer">Select All</button>
+                  <span class="text-ledger-border">|</span>
+                  <button type="button" id="split-clear-all-btn" class="text-ledger-muted hover:text-ledger-ink hover:underline cursor-pointer">Clear</button>
+                </div>
+              </div>
+              <div id="split-members-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-white border border-ledger-border rounded-sm">
+              </div>
+            </div>
+            <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <button
+                type="submit"
+                id="add-expense-btn"
+                disabled
+                class="bg-ledger-forest text-white px-5 py-2.5 text-sm font-medium rounded-sm hover:bg-[#25563f] disabled:opacity-40 disabled:cursor-not-allowed transition-all font-sans cursor-pointer min-h-[38px] flex items-center justify-center shrink-0"
+              >
+                Add Expense
+              </button>
+              <span id="expense-validation-hint" class="font-sans text-xs text-ledger-muted">
+                Complete fields to record expense
+              </span>
+            </div>
+          </form>
+          -->
+        </div>
+      </section>
+
+      <!-- Section: Expenses -->
+      <section id="section-expenses" class="py-9">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-serif text-xl font-medium tracking-tight text-ledger-ink">Expenses</h2>
+          <span id="expenses-count" class="font-mono text-xs text-ledger-muted">4 expenses</span>
+        </div>
+        <div id="expenses-content">
+          <div id="expenses-list-wrapper">
+            <!-- POPULATED STATE: visible by default -->
+            <ul id="expenses-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border">
+              <!-- Expense 1: Groceries -->
+              <li class="py-3 px-1 hover:bg-slate-100/50 transition-colors">
+                <div class="flex items-start justify-between gap-3 sm:gap-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 sm:gap-2">
+                      <h3 class="font-sans text-sm sm:text-base font-semibold text-ledger-ink break-words min-w-0">
+                        Groceries
+                      </h3>
+                      <div class="flex items-baseline gap-2 shrink-0 self-start sm:self-auto">
+                        <span class="font-mono text-sm sm:text-base font-semibold text-ledger-ink">
+                          ₹600.00
+                        </span>
+                        <span class="font-mono text-xs text-ledger-muted">
+                          (₹200.00 / person)
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ledger-muted font-sans">
+                      <span>Paid by <strong class="font-medium text-ledger-ink">ram</strong></span>
+                      <span class="text-ledger-border">•</span>
+                      <span>Split between: <span class="text-ledger-ink font-medium break-words">ram, shyam, sita</span></span>
+                    </div>
+                  </div>
+                  <button type="button" class="delete-expense-btn text-ledger-muted hover:text-ledger-rust p-2 rounded-sm transition-colors cursor-pointer shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center" data-id="exp_1" title="Delete Groceries" aria-label="Delete Groceries">
+                    <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </li>
+              <!-- Expense 2: Dinner -->
+              <li class="py-3 px-1 hover:bg-slate-100/50 transition-colors">
+                <div class="flex items-start justify-between gap-3 sm:gap-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 sm:gap-2">
+                      <h3 class="font-sans text-sm sm:text-base font-semibold text-ledger-ink break-words min-w-0">
+                        Dinner
+                      </h3>
+                      <div class="flex items-baseline gap-2 shrink-0 self-start sm:self-auto">
+                        <span class="font-mono text-sm sm:text-base font-semibold text-ledger-ink">
+                          ₹360.00
+                        </span>
+                        <span class="font-mono text-xs text-ledger-muted">
+                          (₹120.00 / person)
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ledger-muted font-sans">
+                      <span>Paid by <strong class="font-medium text-ledger-ink">shyam</strong></span>
+                      <span class="text-ledger-border">•</span>
+                      <span>Split between: <span class="text-ledger-ink font-medium break-words">ram, shyam, sita</span></span>
+                    </div>
+                  </div>
+                  <button type="button" class="delete-expense-btn text-ledger-muted hover:text-ledger-rust p-2 rounded-sm transition-colors cursor-pointer shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center" data-id="exp_2" title="Delete Dinner" aria-label="Delete Dinner">
+                    <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </li>
+              <!-- Expense 3: Coffee & Snacks -->
+              <li class="py-3 px-1 hover:bg-slate-100/50 transition-colors">
+                <div class="flex items-start justify-between gap-3 sm:gap-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 sm:gap-2">
+                      <h3 class="font-sans text-sm sm:text-base font-semibold text-ledger-ink break-words min-w-0">
+                        Coffee &amp; Snacks
+                      </h3>
+                      <div class="flex items-baseline gap-2 shrink-0 self-start sm:self-auto">
+                        <span class="font-mono text-sm sm:text-base font-semibold text-ledger-ink">
+                          ₹90.00
+                        </span>
+                        <span class="font-mono text-xs text-ledger-muted">
+                          (₹30.00 / person)
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ledger-muted font-sans">
+                      <span>Paid by <strong class="font-medium text-ledger-ink">shyam</strong></span>
+                      <span class="text-ledger-border">•</span>
+                      <span>Split between: <span class="text-ledger-ink font-medium break-words">ram, shyam, sita</span></span>
+                    </div>
+                  </div>
+                  <button type="button" class="delete-expense-btn text-ledger-muted hover:text-ledger-rust p-2 rounded-sm transition-colors cursor-pointer shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center" data-id="exp_3" title="Delete Coffee &amp; Snacks" aria-label="Delete Coffee &amp; Snacks">
+                    <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </li>
+              <!-- Expense 4: Cab Fare -->
+              <li class="py-3 px-1 hover:bg-slate-100/50 transition-colors">
+                <div class="flex items-start justify-between gap-3 sm:gap-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 sm:gap-2">
+                      <h3 class="font-sans text-sm sm:text-base font-semibold text-ledger-ink break-words min-w-0">
+                        Cab Fare
+                      </h3>
+                      <div class="flex items-baseline gap-2 shrink-0 self-start sm:self-auto">
+                        <span class="font-mono text-sm sm:text-base font-semibold text-ledger-ink">
+                          ₹300.00
+                        </span>
+                        <span class="font-mono text-xs text-ledger-muted">
+                          (₹100.00 / person)
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-ledger-muted font-sans">
+                      <span>Paid by <strong class="font-medium text-ledger-ink">sita</strong></span>
+                      <span class="text-ledger-border">•</span>
+                      <span>Split between: <span class="text-ledger-ink font-medium break-words">ram, shyam, sita</span></span>
+                    </div>
+                  </div>
+                  <button type="button" class="delete-expense-btn text-ledger-muted hover:text-ledger-rust p-2 rounded-sm transition-colors cursor-pointer shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center" data-id="exp_4" title="Delete Cab Fare" aria-label="Delete Cab Fare">
+                    <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </li>
+            </ul>
+            <div id="expenses-empty" class="text-sm text-ledger-muted py-3 italic hidden">
+              No expenses recorded yet.
+            </div>
+
+            <!-- EMPTY STATE: uncomment this block and comment the populated block above to show the empty UI
+            <ul id="expenses-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border hidden">
+            </ul>
+            <div id="expenses-empty" class="text-sm text-ledger-muted py-3 italic">
+              No expenses recorded yet.
+            </div>
+            -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Balances -->
+      <section id="section-balances" class="py-9">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-serif text-xl font-medium tracking-tight text-ledger-ink">Balances</h2>
+        </div>
+        <div id="balances-content">
+          <div id="balances-list-wrapper">
+            <!-- POPULATED STATE: visible by default -->
+            <ul id="balances-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border">
+              <!-- Member 1: ram (gets back ₹150.00) -->
+              <li class="flex items-center justify-between py-2.5 px-1 hover:bg-slate-100/50 transition-colors gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white shrink-0 select-none" style="background-color: #2F6B4F;">
+                    R
+                  </span>
+                  <span class="font-sans text-sm font-medium text-ledger-ink truncate break-words">ram</span>
+                </div>
+                <div class="font-mono text-sm shrink-0 ml-2 text-right">
+                  <span class="text-ledger-forest font-medium">gets back ₹150.00</span>
+                </div>
+              </li>
+              <!-- Member 2: shyam (settled up) -->
+              <li class="flex items-center justify-between py-2.5 px-1 hover:bg-slate-100/50 transition-colors gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white shrink-0 select-none" style="background-color: #3D5A80;">
+                    S
+                  </span>
+                  <span class="font-sans text-sm font-medium text-ledger-ink truncate break-words">shyam</span>
+                </div>
+                <div class="font-mono text-sm shrink-0 ml-2 text-right">
+                  <span class="text-ledger-muted">settled up</span>
+                </div>
+              </li>
+              <!-- Member 3: sita (owes ₹150.00) -->
+              <li class="flex items-center justify-between py-2.5 px-1 hover:bg-slate-100/50 transition-colors gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white shrink-0 select-none" style="background-color: #8C5E58;">
+                    S
+                  </span>
+                  <span class="font-sans text-sm font-medium text-ledger-ink truncate break-words">sita</span>
+                </div>
+                <div class="font-mono text-sm shrink-0 ml-2 text-right">
+                  <span class="text-ledger-rust font-medium">owes ₹150.00</span>
+                </div>
+              </li>
+            </ul>
+            <div id="balances-empty" class="text-sm text-ledger-muted py-3 italic hidden">
+              No members to calculate balances.
+            </div>
+            <p id="balances-helper-text" class="text-xs text-ledger-muted mt-3.5 font-sans">
+              Balances show the difference between what each person paid and their share of the group expenses.
+            </p>
+
+            <!-- EMPTY STATE: uncomment this block and comment the populated block above to show the empty UI
+            <ul id="balances-list" class="divide-y divide-ledger-border border-t border-b border-ledger-border hidden">
+            </ul>
+            <div id="balances-empty" class="text-sm text-ledger-muted py-3 italic">
+              No members to calculate balances.
+            </div>
+            <p id="balances-helper-text" class="text-xs text-ledger-muted mt-3.5 font-sans hidden">
+              Balances show the difference between what each person paid and their share of the group expenses.
+            </p>
+            -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>
